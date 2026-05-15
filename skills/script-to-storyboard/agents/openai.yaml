@@ -1,0 +1,4 @@
+interface:
+  display_name: "剧本转分镜"
+  short_description: "把剧本转换为15秒Clip文字分镜"
+  default_prompt: "Use $script-to-storyboard to 把指定剧本转换为15秒Clip文字分镜。"
