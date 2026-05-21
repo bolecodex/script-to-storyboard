@@ -85,6 +85,8 @@ def generate_storyboard(
                 style=request.style,
                 aspect=request.aspect,
                 clip_duration=request.clip_duration,
+                audience_mode=request.audience_mode,
+                max_shot_seconds=request.max_shot_seconds,
                 source_name=request.source_name,
                 part_index=idx,
                 total_parts=len(chunks),
@@ -104,6 +106,8 @@ def generate_storyboard(
                 style=request.style,
                 aspect=request.aspect,
                 clip_duration=request.clip_duration,
+                audience_mode=request.audience_mode,
+                max_shot_seconds=request.max_shot_seconds,
             ),
             temperature=temperature,
             max_tokens=max_tokens,
@@ -113,6 +117,7 @@ def generate_storyboard(
         storyboard,
         original_script=request.script,
         clip_duration=request.clip_duration,
+        max_shot_seconds=request.max_shot_seconds,
     )
     attempts = 0
     while not result.ok and attempts < repair_attempts:
@@ -131,6 +136,7 @@ def generate_storyboard(
             storyboard,
             original_script=request.script,
             clip_duration=request.clip_duration,
+            max_shot_seconds=request.max_shot_seconds,
         )
     return storyboard, result
 

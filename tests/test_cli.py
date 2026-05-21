@@ -34,3 +34,45 @@ def test_help_command():
 
     assert result.exit_code == 0
     assert "剧本转分镜" in result.output
+
+
+def test_convert_help_includes_director_options():
+    result = runner.invoke(app, ["convert", "--help"])
+
+    assert result.exit_code == 0
+    assert "--audience-mode" in result.output
+    assert "--max-shot-seconds" in result.output
+
+
+def test_check_prints_warnings_without_failure(tmp_path):
+    storyboard = tmp_path / "legacy.md"
+    storyboard.write_text(
+        """# 文字分镜 - 旧格式
+
+## 参考图分配
+- 图片1：女主参考
+- 图片2：房间参考
+
+## Clip 1
+
+### 基础信息
+- 人物：女主@图片1
+- 场景：房间@图片2
+- 时长：15秒
+- 内容概述：女主进入房间。
+
+### 分镜列表
+- 0-3s: 女主@图片1推开房间@图片2的门。
+- 3-6s: 女主@图片1走到桌边。
+- 6-9s: 女主@图片1低头看手机。
+- 9-12s: 女主@图片1抬头。
+- 12-15s: 女主@图片1走出房间@图片2。
+""",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(app, ["check", str(storyboard)])
+
+    assert result.exit_code == 0
+    assert "连贯性设定" in result.output
+    assert "校验通过" in result.output

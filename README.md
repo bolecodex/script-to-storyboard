@@ -67,7 +67,29 @@ script2storyboard convert 剧本.md \
   --project-name "短剧第一集" \
   --style "都市写实" \
   --aspect 9:16 \
+  --audience-mode female \
+  --max-shot-seconds 4 \
   --clip-duration 15 \
   --output 单集制作/EP001/文字分镜.md \
   --force
 ```
+
+## 导演规则
+
+生成结果会使用增强结构：
+
+- `## 连贯性设定`：记录人物站位、场景轴线、正反打方向、转场锚点和景别节奏。
+- 每个 `## Clip N` 包含 `### 导演调度`：明确轴线与站位、正反打规则、切镜策略、转场锚点、景别节奏和频道思维。
+- 分镜条目建议写成 `- 0-3s: [中近景/轴线左侧/承接上镜] ...`，让镜头不越轴、不乱切，转场更连贯。
+
+频道参数：
+
+```bash
+# 女频：情绪流、关系张力、凝视/反应、细微动作和氛围转场
+script2storyboard convert 剧本.md --audience-mode female
+
+# 男频：目标推进、爽点、压迫感、力量变化、空间调度和冲击空镜
+script2storyboard convert 剧本.md --audience-mode male --max-shot-seconds 3
+```
+
+`script2storyboard check` 会把台词遗漏、Clip 编号等基础问题作为错误；导演规则缺失会作为黄色提醒，不阻止旧格式分镜继续使用。

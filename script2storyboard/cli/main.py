@@ -19,6 +19,7 @@ from script2storyboard.storyboard.validator import validate_storyboard
 
 console = Console()
 err_console = Console(stderr=True)
+AUDIENCE_MODES = ["general", "female", "male"]
 
 app = typer.Typer(
     add_completion=False,
@@ -74,6 +75,12 @@ def convert(
     style: str = typer.Option("都市写实", "--style", help="画面风格。"),
     aspect: str = typer.Option("9:16", "--aspect", help="画幅。"),
     clip_duration: int = typer.Option(15, "--clip-duration", min=1, help="每个Clip秒数。"),
+    audience_mode: str = typer.Option(
+        "general",
+        "--audience-mode",
+        help="频道思维：general通用、female女频、male男频。",
+    ),
+    max_shot_seconds: float = typer.Option(4.0, "--max-shot-seconds", min=0.5, help="普通戏建议单镜最大秒数。"),
     temperature: float = typer.Option(0.4, "--temperature", min=0, max=2, help="模型temperature。"),
     max_tokens: int = typer.Option(12000, "--max-tokens", min=256, help="单次生成最大token。"),
     repair_attempts: int = typer.Option(1, "--repair-attempts", min=0, help="校验失败后的模型修复次数。"),
@@ -93,6 +100,8 @@ def convert(
         script_text = script.read_text(encoding="utf-8").strip()
         if not script_text:
             raise S2SError(f"Input script is empty: {script}")
+        if audience_mode not in AUDIENCE_MODES:
+            raise S2SError(f"Invalid --audience-mode: {audience_mode}. Choose one of: {', '.join(AUDIENCE_MODES)}.")
 
         client = ArkTextClient(config)
         request = StoryboardRequest(
@@ -101,6 +110,8 @@ def convert(
             style=style,
             aspect=aspect,
             clip_duration=clip_duration,
+            audience_mode=audience_mode,
+            max_shot_seconds=max_shot_seconds,
             source_name=str(script),
         )
         storyboard, result = generate_storyboard(
@@ -116,12 +127,16 @@ def convert(
     except S2SError as exc:
         _fail(exc)
 
-    if result.ok:
-        console.print(f"[green]已生成文字分镜：{output}[/green]")
-    else:
+    if not result.ok:
         console.print(f"[yellow]已生成文字分镜，但仍有校验提醒：{output}[/yellow]")
         for issue in result.issues:
-            console.print(f"[yellow]- {issue}[/yellow]")
+            console.print(f"[red]- {issue}[/red]")
+    elif result.warnings:
+        console.print(f"[yellow]已生成文字分镜，并有导演规则提醒：{output}[/yellow]")
+    else:
+        console.print(f"[green]已生成文字分镜：{output}[/green]")
+    for warning in result.warnings:
+        console.print(f"[yellow]- {warning}[/yellow]")
 
 
 @app.command("check")
@@ -129,12 +144,20 @@ def check(
     storyboard: Path = typer.Argument(..., exists=True, file_okay=True, dir_okay=False, help="文字分镜Markdown。"),
     script: Path | None = typer.Option(None, "--script", exists=True, file_okay=True, dir_okay=False, help="原剧本，用于检查台词保留。"),
     clip_duration: int = typer.Option(15, "--clip-duration", min=1, help="每个Clip秒数。"),
+    max_shot_seconds: float = typer.Option(4.0, "--max-shot-seconds", min=0.5, help="普通戏建议单镜最大秒数。"),
 ) -> None:
     """离线校验文字分镜Markdown文件。"""
 
     content = storyboard.read_text(encoding="utf-8")
     original = script.read_text(encoding="utf-8") if script else None
-    result = validate_storyboard(content, original_script=original, clip_duration=clip_duration)
+    result = validate_storyboard(
+        content,
+        original_script=original,
+        clip_duration=clip_duration,
+        max_shot_seconds=max_shot_seconds,
+    )
+    for warning in result.warnings:
+        console.print(f"[yellow]- {warning}[/yellow]")
     if result.ok:
         console.print("[green]文字分镜校验通过。[/green]")
         return
